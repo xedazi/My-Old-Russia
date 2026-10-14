@@ -1,0 +1,54 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Install NDK
+      run: |
+        sdkmanager --install "ndk;25.1.8937393"
+        echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.1.8937393" >> $GITHUB_ENV
+
+    - name: Build JNI
+      run: |
+        cd "Jni source"
+        $ANDROID_NDK_HOME/ndk-build -j$(nproc)
+      continue-on-error: true
+
+    - name: Copy libsamp.so
+      run: |
+        mkdir -p app/src/main/jniLibs/armeabi-v7a
+        if [ -f "Jni source/libs/armeabi-v7a/libsamp.so" ]; then
+          cp "Jni source/libs/armeabi-v7a/libsamp.so" app/src/main/jniLibs/armeabi-v7a/
+        fi
+
+    - name: Build APK
+      run: |
+        chmod +x gradlew
+        ./gradlew assembleDebug --stacktrace
+      continue-on-error: true
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: app/build/outputs/apk/debug/*.apk
+        if-no-files-found: ignore
