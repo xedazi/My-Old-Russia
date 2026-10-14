@@ -2,8 +2,6 @@ name: Build APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main, master ]
 
 jobs:
   build:
@@ -21,34 +19,44 @@ jobs:
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
+      with:
+        accept-android-sdk-licenses: true
 
-    - name: Install NDK
+    - name: Install NDK and build tools
       run: |
-        sdkmanager --install "ndk;25.1.8937393"
-        echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.1.8937393" >> $GITHUB_ENV
+        sdkmanager "ndk;25.2.9519653" "cmake;3.22.1" "build-tools;30.0.3" "platforms;android-30"
+        echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653" >> $GITHUB_ENV
+        echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/25.2.9519653" >> $GITHUB_ENV
 
-    - name: Build JNI
+    - name: Build JNI (libsamp.so)
       run: |
-        cd "Jni source"
-        $ANDROID_NDK_HOME/ndk-build -j$(nproc)
+        cd "Jni source" || cd "Jni source/"
+        $ANDROID_NDK_HOME/ndk-build -j$(nproc) NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk NDK_APPLICATION_MK=Application.mk
       continue-on-error: true
 
-    - name: Copy libsamp.so
+    - name: Prepare jniLibs
       run: |
         mkdir -p app/src/main/jniLibs/armeabi-v7a
         if [ -f "Jni source/libs/armeabi-v7a/libsamp.so" ]; then
           cp "Jni source/libs/armeabi-v7a/libsamp.so" app/src/main/jniLibs/armeabi-v7a/
+          echo "libsamp.so copied successfully"
+        else
+          echo "WARNING: libsamp.so not found after ndk-build"
+          find . -name "libsamp.so" || true
         fi
 
-    - name: Build APK
-      run: |
-        chmod +x gradlew
-        ./gradlew assembleDebug --stacktrace
+    - name: Make gradlew executable
+      run: chmod +x gradlew
+
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug --stacktrace --info
       continue-on-error: true
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug
-        path: app/build/outputs/apk/debug/*.apk
-        if-no-files-found: ignore
+        name: OLD-RUSSIA-APK
+        path: |
+          app/build/outputs/apk/debug/*.apk
+          app/build/outputs/apk/**/*.apk
+        if-no-files-found: warn
