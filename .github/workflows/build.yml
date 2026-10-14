@@ -2,6 +2,8 @@ name: Build APK
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main, master ]
 
 jobs:
   build:
@@ -19,7 +21,6 @@ jobs:
 
     - name: Setup Android SDK manually
       run: |
-        # Скачиваем commandlinetools
         mkdir -p $HOME/android-sdk/cmdline-tools
         curl -o cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
         unzip -q cmdtools.zip -d $HOME/android-sdk/cmdline-tools
@@ -28,10 +29,8 @@ jobs:
         export ANDROID_HOME=$HOME/android-sdk
         export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
         
-        # Принимаем лицензии
         yes | sdkmanager --licenses > /dev/null || true
         
-        # Устанавливаем нужное
         sdkmanager "platform-tools" "platforms;android-30" "build-tools;30.0.3" "ndk;25.2.9519653"
         
         echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
@@ -48,18 +47,4 @@ jobs:
     - name: Copy lib
       run: |
         mkdir -p app/src/main/jniLibs/armeabi-v7a
-        find . -name "libsamp.so" -exec cp {} app/src/main/jniLibs/armeabi-v7a/ \; || true
-        ls -la app/src/main/jniLibs/armeabi-v7a/ || true
-
-    - name: Build APK
-      run: |
-        chmod +x gradlew
-        ./gradlew assembleDebug --stacktrace
-      continue-on-error: true
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: OLD-RUSSIA-APK
-        path: app/build/outputs/apk/**/*.apk
-        if-no-files-found: warn
+        find . -name 
