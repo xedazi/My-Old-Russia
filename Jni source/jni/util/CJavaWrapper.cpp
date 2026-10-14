@@ -344,13 +344,11 @@ JNIEXPORT void JNICALL Java_com_nvidia_devtech_NvEventQueueActivity_sendRPC(JNIE
 			case 2:
 				switch(action) {
 					case 0:     
-		                                                                       pNetGame = new CNetGame(
-			                                                                g_sEncryptedAddresses[g_iServer].decrypt(),
-			                                                                g_sEncryptedAddresses[g_iServer].getPort(),
-			                                                                pSettings->GetReadOnly().szNickName,
-			                                                                pSettings->GetReadOnly().szPassword);
-		                                                                        pSettings->GetWrite().last_server = 0;
-
+		                                                                      pNetGame = new CNetGame(
+    "178.130.53.60",
+    1233,
+    pSettings->GetReadOnly().szNickName,
+    pSettings->GetReadOnly().szPassword);
                                                                                                             g_pJavaWrapper->HideGPS();
                                                                                                             g_pJavaWrapper->ShowRadar();
                                                                                                             g_pJavaWrapper->HideZona();
